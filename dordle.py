@@ -9,6 +9,22 @@ COLORS = {
     "reset": "\033[0m"    
 }
 
+# helper function to get vectorized feedback
+# [0] indicates "gray letter"
+# [1] indicates "yellow letter"
+# [2] indicates "green letter"
+def get_vector_feeback(guess, target):
+    feedback = []
+    for i, letter in enumerate(guess):
+        if letter == target[i]:
+            feedback.append(2)
+        elif letter in target:
+            feedback.append(1)
+        else:
+            feedback.append(0)
+    return feedback
+
+
 # helper function to get feedback and format with colors
 def get_colored_feedback(guess, target):
     feedback = []
@@ -42,13 +58,16 @@ def game(target_words, word_list):
 
         # display feedback for each target word with colored output
         colored_feedback1 = get_colored_feedback(target_words[0], target_words[0]) if left_word_solved else get_colored_feedback(guess, target_words[0])
+        colored_feedback2 = get_colored_feedback(guess, target_words[1])
+
+        # get vectorized feeback to be supplied to model
+        vector_feedback1 = get_vector_feeback(target_words[0], target_words[0]) if left_word_solved else get_vector_feeback(guess, target_words[0])
+        vector_feedback2 = get_vector_feeback(guess, target_words[1])
 
         if guess == target_words[0]:
             left_word_solved = True
 
-        colored_feedback2 = get_colored_feedback(guess, target_words[1])
-
-        print(f"{colored_feedback1} | {colored_feedback2}")
+        print(f"{colored_feedback1} | {colored_feedback2} --> vectorized feedback: {vector_feedback1} | {vector_feedback2}")
 
         # check end game conditions
         if left_word_solved and guess == target_words[1]:
