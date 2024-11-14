@@ -44,6 +44,7 @@ def game(target_words, word_list):
 
     attempt = 1
     left_word_solved = False
+    right_word_solved = False
 
     # main game loop
     while attempt <= attempts:
@@ -58,19 +59,22 @@ def game(target_words, word_list):
 
         # display feedback for each target word with colored output
         colored_feedback1 = get_colored_feedback(target_words[0], target_words[0]) if left_word_solved else get_colored_feedback(guess, target_words[0])
-        colored_feedback2 = get_colored_feedback(guess, target_words[1])
+        colored_feedback2 = get_colored_feedback(target_words[1], target_words[1]) if right_word_solved else get_colored_feedback(guess, target_words[1])
 
         # get vectorized feeback to be supplied to model
         vector_feedback1 = get_vector_feeback(target_words[0], target_words[0]) if left_word_solved else get_vector_feeback(guess, target_words[0])
-        vector_feedback2 = get_vector_feeback(guess, target_words[1])
+        vector_feedback2 = get_vector_feeback(target_words[1], target_words[1]) if right_word_solved else get_vector_feeback(guess, target_words[1])
 
         if guess == target_words[0]:
             left_word_solved = True
+        
+        if guess == target_words[1]:
+            right_word_solved = True
 
         print(f"{colored_feedback1} | {colored_feedback2} --> vectorized feedback: {vector_feedback1} | {vector_feedback2}")
 
         # check end game conditions
-        if left_word_solved and guess == target_words[1]:
+        if left_word_solved and right_word_solved:
             print(f"Congratulations! You guessed both words, in {attempt} attempts!\n")
             break
         
