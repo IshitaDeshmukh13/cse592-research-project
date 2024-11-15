@@ -56,7 +56,7 @@ def guess_word(possible_words, knowledge):
 def update_knowledge(knowledge, vector_feedback1, guess):
     for index, value in enumerate(vector_feedback1):
         if value == 0 or value == 1:
-            if value in knowledge[index]:
+            if guess[index] in knowledge[index]:
                 knowledge[index].remove(guess[index])
         else:
             knowledge[index] = [guess[index]]
