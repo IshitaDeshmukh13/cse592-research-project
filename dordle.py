@@ -38,6 +38,54 @@ def get_colored_feedback(guess, target):
     return ''.join(feedback)
 
 
+def score_word_list(word_list, guesses, feedback_matrix):
+    print("guesses: ", guesses)
+    print("feedback: ", feedback_matrix)
+
+    # initialize a dictionary to store scores for each word
+    word_scores = {word: 0 for word in word_list}
+
+    # hyper parameters
+    correct_position_match_reward = 10
+    correct_letter_contains_reward = 5
+    incorrect_letter_penalty = -100
+    uncommon_letter_penalty = -0.5
+    
+    # loop through each word in the word list to calculate a score
+    for sample_word in word_list:
+        word_score = 0
+        for guess, feedback in zip(guesses, feedback_matrix):
+            if guess == sample_word:
+                word_score += incorrect_letter_penalty
+            else:
+                for i, (guess_letter, guess_fb) in enumerate(zip(guess, feedback)):   
+                    if guess_fb == 2:  # guess letter is in the correct position of target word
+                        if sample_word[i] == guess_letter:
+                            word_score += correct_position_match_reward  # high score for a correct-position match
+                        else:
+                            word_score += incorrect_letter_penalty  # incorrect word
+                    elif guess_fb == 1:  # guess letter is in the target word but in the wrong position
+                        if guess_letter in sample_word and sample_word[i] != guess_letter:
+                            word_score += correct_letter_contains_reward  # small boost for correct letter, wrong position
+                        else:
+                            word_score += incorrect_letter_penalty # incorrect word
+                    elif guess_fb == 0:  # guess letter is not in the target word
+                        if guess_letter in sample_word:
+                            word_score += incorrect_letter_penalty  # incorrect word
+        
+
+        for uncommon in ['q', 'j', 'z', 'x', 'v', 'k', 'w']:
+            if uncommon in sample_word:
+                word_score += uncommon_letter_penalty # slight penalty if word has uncommon letters in it
+
+        word_scores[sample_word] = word_score  # assign the computed score to the word
+
+    # sort words by score in descending order
+    sorted_words = sorted(word_scores.items(), key=lambda x: x[1], reverse=True)
+    return sorted_words 
+
+
+
 def game(target_words, word_list):
     
     attempts = 100
@@ -45,6 +93,9 @@ def game(target_words, word_list):
     attempt = 1
     left_word_solved = False
     right_word_solved = False
+
+    feedback_matrix = []
+    guesses = []
 
     # main game loop
     while attempt <= attempts:
@@ -84,6 +135,18 @@ def game(target_words, word_list):
             print(f"The words were: {target_words}\n")
             break
 
+        guesses.append(guess)
+        feedback_matrix.append(vector_feedback1)
+
+        # uncomment lines below to run constraint satisfaction scoring method
+
+        # score_ratings = score_word_list(word_list, guesses, feedback_matrix)
+
+        # print("Scored words (best guesses at the top):")
+        # for word, score in score_ratings[:10]:
+        #     print(f"{word}: {score}")
+
+
         attempt += 1
 
     return attempt
@@ -105,16 +168,22 @@ def main():
     game_num = 1
     num_attempts = 0
 
+    attempt_dict = {}
+
     while game_num <= total_games:
         target_words = random.sample(word_list, 2)  # select two target words
         print("target words: ", target_words)
         print("*** WELCOME TO A NEW GAME OF DORDLE ***")
-        num_attempts += game(target_words, word_list)
+        game_attempts = game(target_words, word_list)
+        num_attempts += game_attempts
         game_num += 1
+
+        attempt_dict[game_attempts] = attempt_dict.get(game_attempts, 0) + 1
     
     print("total games", total_games)
     average = float(num_attempts / total_games)
     print(f"average attemps per game: {average}")
+    print("attempt spread: ", attempt_dict) # key is number of attempts, value is number of times program took that many attempts
 
 if __name__=="__main__":
     main()
