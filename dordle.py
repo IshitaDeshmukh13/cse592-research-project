@@ -223,17 +223,22 @@ def main():
 
     game_num = 1
     num_attempts = 0
+    num_total_attempts = {}
 
     while game_num <= total_games:
         target_words = random.sample(word_list, 2)  # select two target words
         print("target words: ", target_words)
         print("*** WELCOME TO A NEW GAME OF DORDLE ***")
-        num_attempts += game(target_words, word_list)
+        game_attempt = game(target_words, word_list)
+        num_attempts += game_attempt
         game_num += 1
+        num_total_attempts[game_attempt] = num_total_attempts.get(game_attempt, 0) + 1
+        print(num_total_attempts)
 
     print("total games", total_games)
     average = float(num_attempts / total_games)
     print(f"average attemps per game: {average}")
+    print(num_total_attempts)
 
 
 if __name__ == "__main__":
