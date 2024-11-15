@@ -1,5 +1,7 @@
 import random
 import sys
+import matplotlib.pyplot as plt
+import time
 
 # ANSI escape codes for colors
 COLORS = {
@@ -39,8 +41,8 @@ def get_colored_feedback(guess, target):
 
 
 def score_word_list(word_list, guesses, feedback_matrix):
-    print("guesses: ", guesses)
-    print("feedback: ", feedback_matrix)
+    # print("guesses: ", guesses)
+    # print("feedback: ", feedback_matrix)
 
     # initialize a dictionary to store scores for each word
     word_scores = {word: 0 for word in word_list}
@@ -94,13 +96,18 @@ def game(target_words, word_list):
     left_word_solved = False
     right_word_solved = False
 
-    feedback_matrix = []
+    feedback_matrix1 = []
+    feedback_matrix2 = []
     guesses = []
+    score_ratings = []
 
     # main game loop
     while attempt <= attempts:
-
-        guess = input(f"Attempt {attempt}/{attempts} - Enter your guess: ").lower() # user's word guess
+        # user's word guess
+        print(f"Attempt {attempt}/{attempts} - Enter your guess: ")
+        guess = "spear" if len(score_ratings) == 0 else score_ratings[0][0]
+        if len(score_ratings) > 0:
+            print("Guess is: ", guess) 
         
         # validate guess
         if len(guess) != 5 or guess not in word_list:
@@ -136,11 +143,15 @@ def game(target_words, word_list):
             break
 
         guesses.append(guess)
-        feedback_matrix.append(vector_feedback1)
+        feedback_matrix1.append(vector_feedback1)
+        feedback_matrix2.append(vector_feedback2)
 
-        # uncomment lines below to run constraint satisfaction scoring method
-
-        # score_ratings = score_word_list(word_list, guesses, feedback_matrix)
+        if not left_word_solved:
+            score_ratings = score_word_list(word_list, guesses, feedback_matrix1)
+            # print("finding words for left...")
+        else:
+            score_ratings = score_word_list(word_list, guesses, feedback_matrix2)
+            # print("finding words for right...")
 
         # print("Scored words (best guesses at the top):")
         # for word, score in score_ratings[:10]:
@@ -159,7 +170,7 @@ def preprocess_data(filename):
 
 def main():
 
-    total_games = int(sys.argv[1]) if len(sys.argv) > 1 else 10
+    total_games = int(sys.argv[1]) if len(sys.argv) > 1 else 1
 
     # read word list from file
     filename = "words.txt"
@@ -170,6 +181,7 @@ def main():
 
     attempt_dict = {}
 
+    start = time.time()
     while game_num <= total_games:
         target_words = random.sample(word_list, 2)  # select two target words
         print("target words: ", target_words)
@@ -179,11 +191,23 @@ def main():
         game_num += 1
 
         attempt_dict[game_attempts] = attempt_dict.get(game_attempts, 0) + 1
-    
+    end = time.time()
+
     print("total games", total_games)
     average = float(num_attempts / total_games)
     print(f"average attemps per game: {average}")
     print("attempt spread: ", attempt_dict) # key is number of attempts, value is number of times program took that many attempts
+    print("total time: ", end - start, "seconds")
+
+
+    x = list(attempt_dict.keys())
+    y = list(attempt_dict.values())
+    plt.bar(x, y)
+    plt.xlabel('num guesses')
+    plt.ylabel('frequency')
+    plt.title('csp results')
+    plt.xticks(range(0, max(x) + 1))
+    plt.savefig("bar_plot.png")
 
 if __name__=="__main__":
     main()
