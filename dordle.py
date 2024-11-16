@@ -1,6 +1,7 @@
 import random
 import sys
 import numpy as np
+import time
 
 # ANSI escape codes for colors
 COLORS = {
@@ -122,15 +123,23 @@ def game(target_words, word_list):
 
     attempt = 1
     left_word_solved = False
+    right_word_solved = False
 
     # initialize agent
-    candidate_list = word_list.copy()
+    candidate_list_left = word_list.copy()
+    candidate_list_right = word_list.copy()
 
     # sort candidate_list before starting
 
-    guessed_words = set()
-    correct_letters = set()
-    possible_letters = [set("abcdefghijklmnopqrstuvwxyz").copy() for i in range(5)]
+    guessed_words_left = set()
+    correct_letters_left = set()
+    possible_letters_left = [set("abcdefghijklmnopqrstuvwxyz").copy() for i in range(5)]
+
+    guessed_words_right = set()
+    correct_letters_right = set()
+    possible_letters_right = [
+        set("abcdefghijklmnopqrstuvwxyz").copy() for i in range(5)
+    ]
 
     # main game loop
     while attempt <= attempts:
@@ -141,15 +150,29 @@ def game(target_words, word_list):
         # guess = make_guess(
         #     guessed_words, candidate_list, correct_letters, possible_letters
         # )
-        guess = make_guess(guessed_words, candidate_list, word_list)
+        guess = ""
 
-        # validate guess
-        if len(guess) != 5 or guess not in word_list:
-            print("Invalid guess. Try again.")
-            continue
+        if not left_word_solved and not right_word_solved:  # priority to left word
+            guess = make_guess(guessed_words_left, candidate_list_left, word_list)
 
-        # add to guessed words list
-        guessed_words.add(guess)
+            # add to guessed words list
+            guessed_words_left.add(guess)
+            guessed_words_right.add(guess)
+
+        elif left_word_solved and not right_word_solved:  # solve right word
+            guess = make_guess(guessed_words_right, candidate_list_right, word_list)
+
+            # add to guessed words list
+            guessed_words_left.add(guess)
+
+        elif not left_word_solved and right_word_solved:  # solve left word
+            guess = make_guess(guessed_words_left, candidate_list_left, word_list)
+
+            # add to guessed words list
+            guessed_words_left.add(guess)
+
+        else:
+            print("ERROR 1")
 
         # display feedback for each target word with colored output
         colored_feedback1 = (
@@ -157,43 +180,56 @@ def game(target_words, word_list):
             if left_word_solved
             else get_colored_feedback(guess, target_words[0])
         )
-        colored_feedback2 = get_colored_feedback(guess, target_words[1])
+        colored_feedback2 = (
+            get_colored_feedback(target_words[1], target_words[1])
+            if right_word_solved
+            else get_colored_feedback(guess, target_words[1])
+        )
 
-        # get vectorized feedback to be supplied to model
+        # get vectorized feeback to be supplied to model
         vector_feedback1 = (
             get_vector_feedback(target_words[0], target_words[0])
             if left_word_solved
             else get_vector_feedback(guess, target_words[0])
         )
-        vector_feedback2 = get_vector_feedback(guess, target_words[1])
+        vector_feedback2 = (
+            get_vector_feedback(target_words[1], target_words[1])
+            if right_word_solved
+            else get_vector_feedback(guess, target_words[1])
+        )
+
+        if guess == target_words[0]:
+            left_word_solved = True
+
+        if guess == target_words[1]:
+            right_word_solved = True
 
         # update based on feedback
         update(
             guess,
             vector_feedback1,
-            guessed_words,
-            candidate_list,
-            correct_letters,
-            possible_letters,
+            guessed_words_left,
+            candidate_list_left,
+            correct_letters_left,
+            possible_letters_left,
         )
 
-        if guess == target_words[0]:
-            left_word_solved = True
+        update(
+            guess,
+            vector_feedback2,
+            guessed_words_right,
+            candidate_list_right,
+            correct_letters_right,
+            possible_letters_right,
+        )
 
         print(
             f"{colored_feedback1} | {colored_feedback2} --> vectorized feedback: {vector_feedback1} | {vector_feedback2}"
         )
 
         # check end game conditions
-        # if left_word_solved and guess == target_words[1]:
-        #     print(f"Congratulations! You guessed both words, in {attempt} attempts!\n")
-        #     break
-
-        # check end game condition (wordle)
-        if left_word_solved:
-            print(
-                f"Congratulations! You guessed the first word, in {attempt} attempts!\n"
-            )
+        if left_word_solved and right_word_solved:
+            print(f"Congratulations! You guessed both words, in {attempt} attempts!\n")
             break
 
         # kill game if on last attempt
@@ -225,6 +261,7 @@ def main():
     num_attempts = 0
     num_total_attempts = {}
 
+    start_time = time.time()
     while game_num <= total_games:
         target_words = random.sample(word_list, 2)  # select two target words
         print("target words: ", target_words)
@@ -235,10 +272,13 @@ def main():
         num_total_attempts[game_attempt] = num_total_attempts.get(game_attempt, 0) + 1
         print(num_total_attempts)
 
+    end_time = time.time()
+
     print("total games", total_games)
     average = float(num_attempts / total_games)
     print(f"average attemps per game: {average}")
     print(num_total_attempts)
+    print("total time: ", end_time - start_time, "seconds")
 
 
 if __name__ == "__main__":
