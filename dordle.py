@@ -2,6 +2,7 @@ import random
 import sys
 import matplotlib.pyplot as plt
 import time
+import numpy as np
 
 # ANSI escape codes for colors
 COLORS = {
@@ -15,7 +16,7 @@ COLORS = {
 # [0] indicates "gray letter"
 # [1] indicates "yellow letter"
 # [2] indicates "green letter"
-def get_vector_feeback(guess, target):
+def get_vector_feedback(guess, target):
     feedback = []
     for i, letter in enumerate(guess):
         if letter == target[i]:
@@ -87,6 +88,50 @@ def score_word_list(word_list, guesses, feedback_matrix):
     return sorted_words 
 
 
+def calc_entropy(guesses, word_score):
+    max_entropy = -1
+    candidate_list = [word for word, score in word_score]
+    
+    overall_score = {word: (0,0) for word in candidate_list}
+
+    for guess, score in word_score:
+        if guess in guesses or score <= 0: # filter out all words that do not satisfy constraints
+            continue
+
+        feedback_counts = {}
+        for target in candidate_list:
+
+            feedback = tuple(get_vector_feedback(guess, target))
+            feedback_counts[feedback] = feedback_counts.get(feedback, 0) + 1
+
+        total = sum(feedback_counts.values())
+        entropy = 0
+        for count in feedback_counts.values():
+            p = count / total
+            entropy -= p * np.log2(p) if p > 0 else 0
+
+        overall_score[guess] = (score, entropy)
+    
+    return overall_score
+
+
+
+def make_guess(entropy_scores, csp_weight, entropy_weight, attempt):
+    best_score = -1
+    best_guess = None
+
+
+    for word, (csp, entropy) in entropy_scores.items():
+        if csp < 0:
+            break
+        score = csp*csp_weight + entropy*entropy_weight
+        # TODO: find better formula for score given each score's weight and attempt
+        if score > best_score:
+            best_score = score
+            best_guess = word
+    
+    return best_guess
+
 
 def game(target_words, word_list):
     
@@ -100,12 +145,14 @@ def game(target_words, word_list):
     feedback_matrix2 = []
     guesses = []
     score_ratings = []
+    entropy_score_ratings = []
+    best_guess = None
 
     # main game loop
     while attempt <= attempts:
         # user's word guess
         print(f"Attempt {attempt}/{attempts} - Enter your guess: ")
-        guess = "spear" if len(score_ratings) == 0 else score_ratings[0][0]
+        guess = "spear" if not best_guess else best_guess
         if len(score_ratings) > 0:
             print("Guess is: ", guess) 
         
@@ -120,8 +167,8 @@ def game(target_words, word_list):
         colored_feedback2 = get_colored_feedback(target_words[1], target_words[1]) if right_word_solved else get_colored_feedback(guess, target_words[1])
 
         # get vectorized feeback to be supplied to model
-        vector_feedback1 = get_vector_feeback(target_words[0], target_words[0]) if left_word_solved else get_vector_feeback(guess, target_words[0])
-        vector_feedback2 = get_vector_feeback(target_words[1], target_words[1]) if right_word_solved else get_vector_feeback(guess, target_words[1])
+        vector_feedback1 = get_vector_feedback(target_words[0], target_words[0]) if left_word_solved else get_vector_feedback(guess, target_words[0])
+        vector_feedback2 = get_vector_feedback(target_words[1], target_words[1]) if right_word_solved else get_vector_feedback(guess, target_words[1])
 
         if guess == target_words[0]:
             left_word_solved = True
@@ -148,15 +195,31 @@ def game(target_words, word_list):
 
         if not left_word_solved:
             score_ratings = score_word_list(word_list, guesses, feedback_matrix1)
-            # print("finding words for left...")
+            entropy_score_ratings = calc_entropy(guesses, score_ratings)
+            print("finding words for left...")
         else:
             score_ratings = score_word_list(word_list, guesses, feedback_matrix2)
-            # print("finding words for right...")
+            entropy_score_ratings = calc_entropy(guesses, score_ratings)
+            print("finding words for right...")
 
-        # print("Scored words (best guesses at the top):")
-        # for word, score in score_ratings[:10]:
-        #     print(f"{word}: {score}")
 
+        print("Scored words (best guesses at the top):")
+        for word, (csp_score, entropy) in entropy_score_ratings.items():
+            if csp_score <= 0:
+                break
+            print(f"{word}: {csp_score}, {entropy}")
+        
+        
+        csp_weight = 1
+        entropy_weight = 1
+        
+        best_guess = make_guess(entropy_score_ratings, csp_weight, entropy_weight, attempt)
+        print("BEST GUESS: ", best_guess)  
+
+
+        # INITIAL TESTING: (on 1000 attempts)
+        # When using csp_weight = 1 and entropy_weight = 0 (not using entropy at all), avg_attempts = 6.359
+        # When using csp_weight = 1 and entropy_weight = 1 (equal weightage), avg_attempts = 6.227
 
         attempt += 1
 
@@ -205,9 +268,9 @@ def main():
     plt.bar(x, y)
     plt.xlabel('num guesses')
     plt.ylabel('frequency')
-    plt.title('csp results')
+    plt.title('attempt spread')
     plt.xticks(range(0, max(x) + 1))
-    plt.savefig("bar_plot.png")
+    plt.savefig("bar.png")
 
 if __name__=="__main__":
     main()
