@@ -41,11 +41,17 @@ def get_colored_feedback(guess, target):
     return "".join(feedback)
 
 
-def make_guess(guessed_words, candidate_list, word_list):
+def make_guess(guessed_words, candidate_list, word_list, word_4_correct, wrong_guess_made):
     max_entropy = -1
     best_guess = None
+    guess_list = candidate_list
 
-    for guess in candidate_list:
+    # If the agent satisfies the wrong guess condition
+    if not wrong_guess_made and word_4_correct and len(candidate_list) >= 3:
+        guess_list = word_list
+        wrong_guess_made = True
+
+    for guess in guess_list:
         if guess in guessed_words:
             continue
 
@@ -67,7 +73,7 @@ def make_guess(guessed_words, candidate_list, word_list):
             max_entropy = entropy
             best_guess = guess
 
-    return best_guess
+    return best_guess, wrong_guess_made
 
 
 def update(
@@ -124,6 +130,10 @@ def game(target_words, word_list):
     attempt = 1
     left_word_solved = False
     right_word_solved = False
+    left_word_wrong_guess_made = False
+    right_word_wrong_guess_made = False
+    left_word_4_correct = False
+    right_word_4_correct = False
 
     # initialize agent
     candidate_list_left = word_list.copy()
@@ -153,20 +163,20 @@ def game(target_words, word_list):
         guess = ""
 
         if not left_word_solved and not right_word_solved:  # priority to left word
-            guess = make_guess(guessed_words_left, candidate_list_left, word_list)
+            guess, left_word_wrong_guess_made = make_guess(guessed_words_left, candidate_list_left, word_list, left_word_4_correct, left_word_wrong_guess_made)
 
             # add to guessed words list
             guessed_words_left.add(guess)
             guessed_words_right.add(guess)
 
         elif left_word_solved and not right_word_solved:  # solve right word
-            guess = make_guess(guessed_words_right, candidate_list_right, word_list)
+            guess, right_word_wrong_guess_made = make_guess(guessed_words_right, candidate_list_right, word_list, right_word_4_correct, right_word_wrong_guess_made)
 
             # add to guessed words list
             guessed_words_left.add(guess)
 
         elif not left_word_solved and right_word_solved:  # solve left word
-            guess = make_guess(guessed_words_left, candidate_list_left, word_list)
+            guess, left_word_wrong_guess_made = make_guess(guessed_words_left, candidate_list_left, word_list, left_word_4_correct, left_word_wrong_guess_made)
 
             # add to guessed words list
             guessed_words_left.add(guess)
@@ -197,6 +207,12 @@ def game(target_words, word_list):
             if right_word_solved
             else get_vector_feedback(guess, target_words[1])
         )
+
+        if vector_feedback1.count(2) == 4:
+            left_word_4_correct = True
+
+        if vector_feedback2.count(2) == 4:
+            right_word_4_correct = True
 
         if guess == target_words[0]:
             left_word_solved = True
