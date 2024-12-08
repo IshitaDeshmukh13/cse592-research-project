@@ -152,7 +152,7 @@ def game(target_words, word_list):
     while attempt <= attempts:
         # user's word guess
         print(f"Attempt {attempt}/{attempts} - Enter your guess: ")
-        guess = "spear" if not best_guess else best_guess
+        guess = "tares" if not best_guess else best_guess
         if len(score_ratings) > 0:
             print("Guess is: ", guess) 
         
