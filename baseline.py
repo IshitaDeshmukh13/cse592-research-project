@@ -1,3 +1,5 @@
+"""Implementation of baseline approach."""
+
 import random
 import sys
 import time

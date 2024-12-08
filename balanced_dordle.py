@@ -1,3 +1,5 @@
+"""Implementation of first balanced approach."""
+
 import random
 import sys
 import matplotlib.pyplot as plt

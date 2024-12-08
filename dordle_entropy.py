@@ -1,3 +1,5 @@
+"""Implementation of entropy approach."""
+
 import random
 import sys
 import numpy as np

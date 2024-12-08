@@ -1,3 +1,6 @@
+"""Implementation of CSP and hybrid approaches. To use CSP approach, set csp_weight to 1
+and entropy_weight to 0. To use hybrid approach, set csp_weight to 1 and entropy_weight to 1."""
+
 import random
 import sys
 import matplotlib.pyplot as plt
@@ -125,7 +128,6 @@ def make_guess(entropy_scores, csp_weight, entropy_weight, attempt):
         if csp < 0:
             break
         score = csp*csp_weight + entropy*entropy_weight
-        # TODO: find better formula for score given each score's weight and attempt
         if score > best_score:
             best_score = score
             best_guess = word
